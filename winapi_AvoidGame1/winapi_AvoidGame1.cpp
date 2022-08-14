@@ -6,7 +6,9 @@
 #include "winapi_AvoidGame1.h"
 #include <list>
 #include <algorithm>
-//#include <cstdlib>
+#include <cstdlib>
+#include <ctime>
+#include<iostream>
 
 #define MAX_LOADSTRING 100
 
@@ -34,10 +36,15 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름�
 HWND g_hWnd;
 HDC g_hDC;
 bool g_bLoop = true;
-PLAYER g_Player = { 375.f, 750.f, 425.f, 800.f, 150.f };
+PLAYER g_Player = { 375.f, 750.f, 425.f, 800.f, 300.f };
 
 list<OBJECT> objectlist_1;
 float g_object1_cooltime = 0.f;
+float g_object2_cooltime = 0.f;
+float g_object3_cooltime = 0.f;
+float g_object4_cooltime = 0.f;
+int randnum = rand();
+bool g_gameEnd = false;
 
 
 
@@ -293,12 +300,33 @@ void Run()
 
     // object1 생성
     g_object1_cooltime += g_fDeltaTime * g_fTimeScale;
-    if (g_object1_cooltime > 1.f) {
-        GenerateObject(objectlist_1, 800.f, 600.f, 800.f + 50.f, 600.f + 50.f, -(rand() % 500 + 300));
-        GenerateObject(objectlist_1, 800.f, 450.f, 800.f + 50.f, 450.f + 50.f, -500.f);
+    g_object2_cooltime += g_fDeltaTime * g_fTimeScale;
+    g_object3_cooltime += g_fDeltaTime * g_fTimeScale;
+    g_object4_cooltime += g_fDeltaTime * g_fTimeScale;
+
+    if (g_object1_cooltime > ((randnum % 10) / (float)10) + 0.1) {
+        GenerateObject(objectlist_1, 800.f, 600.f, 800.f + 50.f, 600.f + 50.f, -500.f);
+        g_object1_cooltime = 0;
+        srand((int)time(NULL));
+        randnum = rand();
+    }
+    if (g_object2_cooltime > ((randnum % 10) / (float)10) + 0.1) {
+        GenerateObject(objectlist_1, -50.f, 450.f, 0.f, 450.f + 50.f, 500.f);
+        g_object2_cooltime = 0;
+        srand((int)time(NULL)*2);
+        randnum = rand();
+    }
+    if (g_object3_cooltime > ((randnum % 10) / (float)10) + 0.1) {
         GenerateObject(objectlist_1, 800.f, 300.f, 800.f + 50.f, 300.f + 50.f, -500.f);
-        GenerateObject(objectlist_1, 800.f, 150.f, 800.f + 50.f, 150.f + 50.f, -500.f);
-        g_object1_cooltime -= 1.f;
+        g_object3_cooltime = 0;
+        srand((int)time(NULL)*3);
+        randnum = rand();
+    }
+    if (g_object4_cooltime > ((randnum % 10) / (float)10) + 0.1) {
+        GenerateObject(objectlist_1, -50.f, 150.f, 0.f, 150.f + 50.f, 500.f);
+        g_object4_cooltime = 0;
+        srand((int)time(NULL)*4);
+        randnum = rand();
     }
 
     //object1 이동
@@ -320,9 +348,42 @@ void Run()
         else
             iter++;
     }
+    //object1 충돌
+    for (OBJECT& obj : objectlist_1)
+    {
+        if (obj.l <= g_Player.r && obj.r >= g_Player.l && obj.t <= g_Player.b && obj.b >= g_Player.t)
+        {
+            g_fTimeScale = 0;
+            TextOut(g_hDC, 350, 400, TEXT("GAME OVER"), 9);
+            TextOut(g_hDC, 335, 420, TEXT("SPACE to Restart"), 16);
+            g_gameEnd = true;
+        }
+    }
+    //player 도착
+    if (g_Player.t < 10.f)
+    {
+        g_fTimeScale = 0;
+        TextOut(g_hDC, 370, 400, TEXT("CLEAR!!"), 7);
+        TextOut(g_hDC, 335, 420, TEXT("SPACE to Restart"), 16);
+        g_gameEnd = true;
+    }
+    //restart
+    if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+    {
+        if (g_gameEnd)
+        {
+            g_Player = { 375.f, 750.f, 425.f, 800.f, 300.f };
+            g_gameEnd = false;
+            g_fTimeScale = 1.f;
+            Rectangle(g_hDC, 0.f, 0.f, 800.f, 800.f);
+            objectlist_1.clear();
+        }
+    }
 
     // 출력
     Rectangle(g_hDC, g_Player.l, g_Player.t, g_Player.r, g_Player.b);  //player
+
+    Rectangle(g_hDC, 0.f, 0.f, 800.f, 10.f);
 
     for (OBJECT& obj : objectlist_1) //object1
     {
